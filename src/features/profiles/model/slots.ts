@@ -1,9 +1,11 @@
 import type {
   CaseContent,
   CaseSnapshot,
+  CoopSnapshot,
   SaveSlot,
 } from "../../../shared/types";
 import { validateSnapshot } from "../lib/codec";
+import { validateCoopSnapshot } from "../../coop/lib/coopCodec";
 export const MAX_SLOTS = 8;
 export function normalizeSlotName(name: string): string {
   const trimmed = name.trim();
@@ -11,7 +13,19 @@ export function normalizeSlotName(name: string): string {
   if (trimmed.length > 24) throw new Error("档案名称最多 24 个字");
   return trimmed;
 }
-export function createSlot(name: string, snapshot: CaseSnapshot): SaveSlot {
+export function validateSlotSnapshot(
+  input: unknown,
+  content: CaseContent,
+): CaseSnapshot | CoopSnapshot {
+  const root = input as { version?: unknown } | null;
+  if (root && root.version === 2)
+    return validateCoopSnapshot(input, content);
+  return validateSnapshot(input, content);
+}
+export function createSlot(
+  name: string,
+  snapshot: CaseSnapshot | CoopSnapshot,
+): SaveSlot {
   return {
     id: crypto.randomUUID(),
     name: normalizeSlotName(name),
@@ -41,7 +55,7 @@ export function parseStoredSlot(
     id: s.id,
     name: normalizeSlotName(s.name),
     updatedAt: s.updatedAt,
-    snapshot: validateSnapshot(s.snapshot, content),
+    snapshot: validateSlotSnapshot(s.snapshot, content),
   };
 }
 export function parseImported(text: string, content: CaseContent): SaveSlot {

@@ -4,6 +4,7 @@ export {
   createSlot,
   exportSlot,
   parseImported,
+  validateSlotSnapshot,
   MAX_SLOTS,
 } from "./model/slots";
 export { readSlots, writeSlot, deleteSlot } from "./lib/storage";

@@ -6,9 +6,14 @@ import {
   Plus,
   Trash2,
   Upload,
+  Users,
   X,
 } from "lucide-react";
-import type { SaveSlot } from "../../../shared/types";
+import type {
+  CaseSnapshot,
+  CoopSnapshot,
+  SaveSlot,
+} from "../../../shared/types";
 interface Props {
   slots: SaveSlot[];
   activeId: string | null;
@@ -18,6 +23,8 @@ interface Props {
   onImport: (text: string) => void;
   onExport: (id: string) => void;
   onClose: () => void;
+  onLoadCoop?: (id: string) => void;
+  onCreateCoop?: () => void;
 }
 export function ProfilesDialog({
   slots,
@@ -28,6 +35,8 @@ export function ProfilesDialog({
   onImport,
   onExport,
   onClose,
+  onLoadCoop,
+  onCreateCoop,
 }: Props) {
   const [name, setName] = useState(""),
     [error, setError] = useState("");
@@ -67,6 +76,15 @@ export function ProfilesDialog({
         <p className="panel-description">
           保存当前调查进度，随时回到熟悉的频率。
         </p>
+        {onCreateCoop && (
+          <button className="coop-archive-entry" onClick={onCreateCoop}>
+            <Users size={15} />
+            <span>
+              <strong>开启同机分工模式</strong>
+              <small>两名调查员轮流戴耳机，私有手记 + 公共会议</small>
+            </span>
+          </button>
+        )}
         <form
           className="profile-save-form"
           onSubmit={(event) => {
@@ -108,43 +126,74 @@ export function ProfilesDialog({
               <small>为这次调查留一个位置。</small>
             </div>
           ) : (
-            slots.map((slot) => (
-              <article
-                className={`profile-card ${activeId === slot.id ? "active" : ""}`}
-                key={slot.id}
-              >
-                <div>
-                  <h3>
-                    {slot.name}
-                    {activeId === slot.id && (
-                      <span className="active-label">当前档案</span>
+            slots.map((slot) => {
+              const isCoop = slot.snapshot.version === 2;
+              const coop = isCoop
+                ? (slot.snapshot as CoopSnapshot)
+                : null;
+              const solo = !isCoop
+                ? (slot.snapshot as CaseSnapshot)
+                : null;
+              return (
+                <article
+                  className={`profile-card ${activeId === slot.id ? "active" : ""} ${isCoop ? "coop-card" : ""}`}
+                  key={slot.id}
+                >
+                  <div>
+                    <h3>
+                      {slot.name}
+                      {isCoop && (
+                        <span className="coop-label">
+                          <Users size={10} /> 同机分工
+                        </span>
+                      )}
+                      {activeId === slot.id && !isCoop && (
+                        <span className="active-label">当前档案</span>
+                      )}
+                    </h3>
+                    {coop ? (
+                      <p>
+                        {new Date(slot.updatedAt).toLocaleString("zh-CN")} ·
+                        轮到「{coop.investigators[coop.activeInvestigator].name}
+                        」 · 公开 {coop.meeting.clues.length} 条证据 ·{" "}
+                        {coop.meeting.notes.length} 篇公开笔记
+                      </p>
+                    ) : (
+                      <p>
+                        {new Date(slot.updatedAt).toLocaleString("zh-CN")} ·{" "}
+                        {solo!.evidence.clues.length} 条线索 ·{" "}
+                        {solo!.evidence.notes.length} 篇笔记
+                      </p>
                     )}
-                  </h3>
-                  <p>
-                    {new Date(slot.updatedAt).toLocaleString("zh-CN")} ·{" "}
-                    {slot.snapshot.evidence.clues.length} 条线索 ·{" "}
-                    {slot.snapshot.evidence.notes.length} 篇笔记
-                  </p>
-                </div>
-                <div className="profile-actions">
-                  <button onClick={() => run(() => onLoad(slot.id))}>
-                    <FolderOpen size={15} /> 读取
-                  </button>
-                  <button
-                    aria-label={`导出 ${slot.name}`}
-                    onClick={() => run(() => onExport(slot.id))}
-                  >
-                    <Download size={15} />
-                  </button>
-                  <button
-                    aria-label={`删除 ${slot.name}`}
-                    onClick={() => run(() => onDelete(slot.id))}
-                  >
-                    <Trash2 size={15} />
-                  </button>
-                </div>
-              </article>
-            ))
+                  </div>
+                  <div className="profile-actions">
+                    {isCoop && onLoadCoop ? (
+                      <button onClick={() => run(() => onLoadCoop(slot.id))}>
+                        <Users size={15} /> 进入分工
+                      </button>
+                    ) : (
+                      !isCoop && (
+                        <button onClick={() => run(() => onLoad(slot.id))}>
+                          <FolderOpen size={15} /> 读取
+                        </button>
+                      )
+                    )}
+                    <button
+                      aria-label={`导出 ${slot.name}`}
+                      onClick={() => run(() => onExport(slot.id))}
+                    >
+                      <Download size={15} />
+                    </button>
+                    <button
+                      aria-label={`删除 ${slot.name}`}
+                      onClick={() => run(() => onDelete(slot.id))}
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                </article>
+              );
+            })
           )}
         </div>
         <footer className="dialog-footer">

@@ -89,7 +89,46 @@ export interface SaveSlot {
   id: string;
   name: string;
   updatedAt: number;
-  snapshot: CaseSnapshot;
+  snapshot: CaseSnapshot | CoopSnapshot;
+}
+export type InvestigatorId = "alpha" | "beta";
+export interface InvestigatorState {
+  id: InvestigatorId;
+  name: string;
+  accessibleScenes: SceneId[];
+  sceneId: SceneId;
+  visited: SceneId[];
+  evidence: EvidenceState;
+  heard: HeardHistory;
+  resume: ResumePoint;
+}
+export interface PublicClueEntry {
+  clueId: string;
+  contributors: InvestigatorId[];
+  submittedAt: number;
+}
+export interface PublicNoteEntry {
+  id: string;
+  noteId: string;
+  contributor: InvestigatorId;
+  title: string;
+  text: string;
+  anchor: AudioBookmark;
+  clueId: string | null;
+  submittedAt: number;
+}
+export interface MeetingState {
+  clues: PublicClueEntry[];
+  notes: PublicNoteEntry[];
+}
+export interface CoopSnapshot {
+  version: 2;
+  mode: "coop";
+  caseId: string;
+  story: Investigation;
+  activeInvestigator: InvestigatorId;
+  investigators: Record<InvestigatorId, InvestigatorState>;
+  meeting: MeetingState;
 }
 export interface TransportState {
   requestedId: string;
